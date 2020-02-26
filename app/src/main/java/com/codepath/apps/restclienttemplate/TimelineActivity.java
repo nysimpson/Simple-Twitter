@@ -195,24 +195,5 @@ public class TimelineActivity extends AppCompatActivity {
                 Log.e(TAG,"onFailure! " + response, throwable);
             }
         });
-        client.getHomeTimeline(new JsonHttpResponseHandler() {
-            @Override
-            public void onSuccess(int statusCode, Headers headers, JSON json) {
-                JSONArray jsonArray = json.jsonArray;
-                Log.d(TAG, "JsonArray " + jsonArray.toString());
-                try {
-                    adapter.clear();
-                    adapter.addAll(Tweet.fromJsonArray(jsonArray));
-                    swipeContainer.setRefreshing(false);
-                } catch(JSONException e) {
-                    Log.e(TAG, "Exception", e);
-                }
-            }
-
-            @Override
-            public void onFailure(int statusCode, Headers headers, String response, Throwable throwable) {
-                Log.e(TAG, "onFailure! " + response, throwable);
-            }
-        });
     }
 }
