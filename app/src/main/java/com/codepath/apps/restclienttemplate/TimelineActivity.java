@@ -80,7 +80,7 @@ public class TimelineActivity extends AppCompatActivity {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
                 Log.i(TAG,"onLoadMore: " + page);
-                loadMoreData();
+               loadMoreData();
             }
         };
         // Adds the scroll listener to RecyclerView
@@ -90,7 +90,7 @@ public class TimelineActivity extends AppCompatActivity {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-                Log.i(TAG,"Showing data from dataase");
+                Log.i(TAG,"Showing data from database");
                 List<TweetWithUser> tweetWithUsers = tweetDao.recentItems();
                 List<Tweet> tweetsFromDB = TweetWithUser.getTweetList(tweetWithUsers);
                 adapter.clear();
@@ -133,6 +133,32 @@ public class TimelineActivity extends AppCompatActivity {
             rvTweets.smoothScrollToPosition(0);
         }
         super.onActivityResult(requestCode, resultCode, data);
+      }
+
+    private void loadMoreData() {
+        // 1. Send an API request to retrieve appropriate paginated data
+        client.getNextPageOfTweets(new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Headers headers, JSON json) {
+                Log.i(TAG, "onSuccess for loadMoreData! " + json.toString());
+                // 2. Deserialize and construct new model objects from the API response
+                JSONArray jsonArray = json.jsonArray;
+                Log.d(TAG, "JsonArray in load more data " + jsonArray.toString());
+                try {
+                    List<Tweet> tweets = Tweet.fromJsonArray(jsonArray);
+                    // 3. Append the new data objects to the existing set of items inside the array of items
+                    adapter.addAll(tweets);
+                    // 4. Notify the adapter of the new items made with `notifyItemRangeInserted()`
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Headers headers, String response, Throwable throwable) {
+                Log.e(TAG, "onFailure for loadMoreData! " + throwable);
+            }
+        }, tweets.get(tweets.size() - 1).id);
     }
 
 
@@ -151,12 +177,11 @@ public class TimelineActivity extends AppCompatActivity {
                     AsyncTask.execute(new Runnable() {
                         @Override
                         public void run() {
-                            Log.i(TAG, "Saving data into dataase");
-
+                            Log.i(TAG,"Saving data into the database");
                             // insert users first
                             List<User> usersFromNetwork = User.fromJsonTweetArray(tweetsFromNetwork);
-                            tweetDao.insertModel((usersFromNetwork.toArray(new User[0])));
-                            // insert tweets first
+                            tweetDao.insertModel(usersFromNetwork.toArray(new User[0]));
+                            // insert tweets  next
                             tweetDao.insertModel(tweetsFromNetwork.toArray(new Tweet[0]));
                         }
                     });
@@ -168,6 +193,25 @@ public class TimelineActivity extends AppCompatActivity {
             @Override
             public void onFailure(int statusCode, Headers headers, String response, Throwable throwable) {
                 Log.e(TAG,"onFailure! " + response, throwable);
+            }
+        });
+        client.getHomeTimeline(new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Headers headers, JSON json) {
+                JSONArray jsonArray = json.jsonArray;
+                Log.d(TAG, "JsonArray " + jsonArray.toString());
+                try {
+                    adapter.clear();
+                    adapter.addAll(Tweet.fromJsonArray(jsonArray));
+                    swipeContainer.setRefreshing(false);
+                } catch(JSONException e) {
+                    Log.e(TAG, "Exception", e);
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Headers headers, String response, Throwable throwable) {
+                Log.e(TAG, "onFailure! " + response, throwable);
             }
         });
     }

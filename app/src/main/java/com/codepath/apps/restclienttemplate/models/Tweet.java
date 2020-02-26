@@ -6,6 +6,8 @@ import androidx.room.ForeignKey;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import com.codepath.apps.restclienttemplate.TimeFormatter;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,7 +43,7 @@ public class Tweet {
         Tweet tweet = new Tweet();
         tweet.body = jsonObject.getString("text");
         tweet.createdAt = jsonObject.getString("created_at");
-        tweet.id =jsonObject.getLong("id");
+        tweet.id = jsonObject.getLong("id");
         User user = User.fromJson(jsonObject.getJSONObject("user"));
         tweet.user = user;
         tweet.userId = user.id;
@@ -56,5 +58,9 @@ public class Tweet {
             tweets.add(fromJson(jsonArray.getJSONObject(i)));
         }
         return tweets;
+    }
+
+    public String getFormattedTimestamp() {
+        return TimeFormatter.getTimeDifference(createdAt);
     }
 }
